@@ -1,5 +1,5 @@
 /* 
- * NEXAQUANT ENGINE - (C) 2026 NexaQuant Author
+ * NEXAQUANT ENGINE - (C) 2026 Nexa1nc
  * Released under GNU GPL v3 with Commercial Fair Use Clause.
  * See LICENSE.md for full terms.
  */

@@ -6,7 +6,7 @@ NexaQuant is released under the **GNU GPL v3 License**. It is 100% FREE for stud
 ### 2. Commercial Use & "Fair Share" Clause
 If you are a commercial entity (Company, Startup, or individual) and you use NexaQuant code to generate significant revenue (directly or indirectly), the following terms apply:
 
-- **Revenue Threshold:** If your project/product using NexaQuant generates more than **$5,000/month** or has received investment, you MUST contact the author (**NexaQuant Author**).
+- **Revenue Threshold:** If your project/product using NexaQuant generates more than **$5,000/month** or has received investment, you MUST contact the author (**Nexa1nc**).
 - **Mandatory Compensation:** A commercial agreement will be negotiated. This may include:
     - A monthly licensing fee.
     - A percentage of revenue (Royalty).
