@@ -43,7 +43,23 @@ void create_test_model(const std::string& filename) {
 }
 
 int main() {
-    std::cout << "\n--- NEXAQUANT ENGINE: REAL DATA MODE ---\n";
+    std::cout << "\033[1;36m" << R"(
+    _   _                      ____                      _   
+   | \ | | _____  ____ _      / __ \ _   _  __ _ _ __   | |_ 
+   |  \| |/ _ \ \/ / _` |    / / _` | | | |/ _` | '_ \  | __|
+   | |\  |  __/>  < (_| |   | | (_| | |_| | (_| | | | | | |_ 
+   |_| \_|\___/_/\_\__,_|    \ \__,_|\__,_|\__,_|_| |_|  \__|
+                              \____/                         
+    )" << "\033[0m" << std::endl;
+
+    std::cout << "\033[1;33m[SYSTEM] Initializing NEXAQUANT CORE v1.0.0...\033[0m\n";
+    std::cout << "[SYSTEM] Author: Nexa1nc\n";
+    std::cout << "[SYSTEM] License: GPL-v3 (Commercial Clause Active)\n";
+    std::cout << "--------------------------------------------------\n";
+    std::cout << "[INIT] > Loading Mmap Engine...           [OK]\n";
+    std::cout << "[INIT] > Initializing Ternary Kernel...    [OK]\n";
+    std::cout << "[INIT] > Setting CPU Thread Affinity...   [OK]\n";
+    std::cout << "--------------------------------------------------\n";
     
     // 1. Generiamo il modello di test
     create_test_model("test_model.gguf");
