@@ -1,6 +1,6 @@
 /* 
  * NEXAQUANT ENGINE - (C) 2026 Nexa1nc
- * Released under GNU GPL v3 with Commercial Fair Use Clause.
+ * Released under GNU AGPL v3. Commercial licensing available.
  * See LICENSE.md for full terms.
  */
 #include <iostream>

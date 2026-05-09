@@ -1,20 +1,19 @@
-# ⚖️ NexaQuant License & Commercial Terms
+# ⚖️ NexaQuant License: GNU AGPL v3
 
-### 1. Personal & Open Source Use
-NexaQuant is released under the **GNU GPL v3 License**. It is 100% FREE for students, researchers, and open-source developers. You can use it, study it, and modify it.
+NexaQuant is released under the **GNU Affero General Public License v3**.
 
-### 2. Commercial Use & "Fair Share" Clause
-If you are a commercial entity (Company, Startup, or individual) and you use NexaQuant code to generate significant revenue (directly or indirectly), the following terms apply:
+### Why AGPL v3?
+This license ensures that NexaQuant remains free and open source forever. Unlike the standard GPL, the AGPL requires that if you run a modified version of NexaQuant as a service (e.g., over a network or as a cloud API), you **must** make the source code of your entire service available to your users.
 
-- **Revenue Threshold:** If your project/product using NexaQuant generates more than **$5,000/month** or has received investment, you MUST contact the author (**Nexa1nc**).
-- **Mandatory Compensation:** A commercial agreement will be negotiated. This may include:
-    - A monthly licensing fee.
-    - A percentage of revenue (Royalty).
-    - Lifetime free access for the author to your product/service.
-    - A one-time "Buy-out" fee.
+### Commercial Licensing
+For organizations that wish to use NexaQuant in proprietary products or services without the requirements of the AGPL v3, **commercial licenses are available**.
 
-### 3. Protection against "Stealing"
-Any attempt to use this code in a closed-source commercial product without a private agreement is a violation of the GPL v3 license and this specific commercial clause. We will take legal action to protect the intellectual property of NexaQuant.
+By purchasing a commercial license, you can:
+- Use NexaQuant without disclosing your own source code.
+- Receive dedicated support and integration assistance.
+- Influence the future roadmap of the engine.
+
+**For all commercial inquiries, please contact: Nexa1nc**
 
 ---
-*By using this software, you agree to these terms. For commercial inquiries, contact the repository owner.*
+*Copyright (C) 2026 Nexa1nc. All rights reserved.*

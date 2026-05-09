@@ -27,8 +27,11 @@ On a standard old-gen CPU (AVX2):
 3. Download any GGUF (Q2_K) and experience the revolution.
 
 ## ⚖️ License
-This project is released under the **GNU GPL v3 License**. 
-**Commercial Use**: If your project generates more than $5k/month, you MUST contact **Nexa1nc** for a commercial license. See `LICENSE.md` for full terms.
+This project is licensed under the **GNU AGPL v3**. 
+
+**Why AGPL?** We believe in open-source AI. If you improve NexaQuant or use it to provide a service, you must share your improvements back with the community.
+
+**Commercial Use**: If you need to use NexaQuant in a proprietary environment or want to avoid the AGPL requirements, **commercial licenses are available**. Please contact **Nexa1nc** for private licensing terms and enterprise support.
 
 ---
 
