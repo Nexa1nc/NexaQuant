@@ -1,0 +1,12 @@
+# Executables
+nexa_bench
+nexa_chat
+
+# Models & Weights (Large Files)
+*.gguf
+
+# Compilation Artifacts
+*.o
+*.out
+*.exe
+.DS_Store
