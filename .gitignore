@@ -1,6 +1,7 @@
 # Executables
 nexa_bench
 nexa_chat
+nexa_test
 
 # Models & Weights (Large Files)
 *.gguf
