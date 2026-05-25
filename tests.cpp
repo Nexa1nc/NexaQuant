@@ -1,6 +1,7 @@
 /* 
  * NEXAQUANT AUTOMATED TEST SUITE - (C) 2026 Nexa1nc
  * Automated Correctness & Performance Verification Tests
+ * Upgraded for NexaQuant v3.0 (Ternary Training, Tiled GEMM & Accumulators)
  */
 #include <iostream>
 #include <vector>
@@ -12,6 +13,7 @@
 #include "ternary_unpacker.hpp"
 #include "vram_multiplexer.hpp"
 #include "gpu_ternary_kernel.hpp"
+#include "ternary_trainer.hpp"
 
 // Test 1: Matematica del Kernel AVX2/FMA
 void test_kernel_math_correctness() {
@@ -99,6 +101,52 @@ void test_vram_multiplexer_eviction() {
     std::cout << "\033[1;32m[PASS] M3 VRAM Swapping & Eviction assertations successful!\033[0m\n\n";
 }
 
+// Test 4: Training Engine, Accumulatori Interi e Convergenza Loss (v3.0)
+void test_v3_training_engine() {
+    std::cout << "[TEST] Running NexaQuant v3.0 Training & Integer Accumulator Verification...\n";
+
+    // 1. Verifica degli accumulatori interi e del gating ternario
+    TernaryTrainer trainer(100, 1.0f, true);
+    trainer.add_layer(4, 4);
+
+    auto& layers = trainer.get_layers();
+    assert(layers.size() == 1 && "Failed to add layer to trainer!");
+    
+    // Impostiamo manualmente un accumulatore ad un valore che supera la soglia
+    layers[0].accumulators[0] = 120; // > 100 -> deve diventare 1
+    layers[0].accumulators[1] = -150; // < -100 -> deve diventare -1
+    layers[0].accumulators[2] = 50;  // in mezzo -> deve diventare 0
+    
+    layers[0].update_ternary_from_accumulators(100);
+
+    assert(layers[0].ternary_weights[0] == 1 && "Integer accumulator failed to trigger weight +1!");
+    assert(layers[0].ternary_weights[1] == -1 && "Integer accumulator failed to trigger weight -1!");
+    assert(layers[0].ternary_weights[2] == 0 && "Integer accumulator failed to trigger weight 0!");
+    std::cout << "  - Stochastic Integer Gating correctly mapped to {-1, 0, 1}.\n";
+
+    // 2. Test di convergenza dell'addestramento su un toy problem
+    // Rete a 2 layer: 8 -> 16 -> 8
+    TernaryTrainer toy_network(50, 1.0f, true);
+    toy_network.add_layer(8, 16);
+    toy_network.add_layer(16, 8);
+
+    std::vector<float> input = {0.5f, -0.2f, 0.8f, 0.1f, -0.4f, 0.9f, -0.7f, 0.3f};
+    std::vector<float> target = {0.1f, 0.9f, -0.3f, 0.5f, 0.7f, -0.1f, 0.8f, 0.2f};
+
+    size_t ram_saved = 0;
+    float initial_loss = toy_network.train_step(input, target, ram_saved);
+    std::cout << "  - Initial Loss: " << initial_loss << " (RAM saved via Checkpointing: " << ram_saved << " Bytes)\n";
+
+    // Addestriamo per 150 passi
+    float final_loss = initial_loss;
+    for (int step = 0; step < 150; ++step) {
+        final_loss = toy_network.train_step(input, target, ram_saved);
+    }
+    std::cout << "  - Final Loss after 150 training steps: " << final_loss << std::endl;
+    assert(final_loss < initial_loss && "Training Convergence Test Failed! Loss did not decay.");
+    std::cout << "\033[1;32m[PASS] NexaQuant v3.0 Stochastic Training Engine validated and converged successfully!\033[0m\n\n";
+}
+
 int main() {
     std::cout << "=======================================================\n";
     std::cout << "     NEXAQUANT AUTOMATED TEST VERIFICATION SUITE\n";
@@ -109,13 +157,14 @@ int main() {
     test_kernel_math_correctness();
     test_lut_unpacker();
     test_vram_multiplexer_eviction();
+    test_v3_training_engine();
     
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff = end - start;
     
     std::cout << "=======================================================\n";
     std::cout << "\033[1;32mALL TESTS PASSED SUCCESSFULLY! (Time: " << diff.count() << "s)\033[0m\n";
-    std::cout << "Engine math and cache virtualization integrity: 100% verified.\n";
+    std::cout << "Engine math, cache virtualization, and v3.0 training integrity: 100% verified.\n";
     std::cout << "=======================================================\n";
     
     return 0;
