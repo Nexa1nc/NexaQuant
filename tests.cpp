@@ -147,6 +147,45 @@ void test_v3_training_engine() {
     std::cout << "\033[1;32m[PASS] NexaQuant v3.0 Stochastic Training Engine validated and converged successfully!\033[0m\n\n";
 }
 
+// Test 5: Salvataggio e Caricamento dei pesi addestrati
+void test_v3_weight_save_load() {
+    std::cout << "[TEST] Running weight save and load correctness verification...\n";
+    TernaryTrainer trainer(100, 1.0f, true);
+    trainer.add_layer(8, 16);
+    trainer.add_layer(16, 8);
+    
+    // Inizializza manualmente alcuni pesi per avere valori noti
+    trainer.get_layers()[0].accumulators[0] = 120;
+    trainer.get_layers()[0].accumulators[1] = -150;
+    trainer.get_layers()[0].accumulators[2] = 50;
+    trainer.get_layers()[0].update_ternary_from_accumulators(100);
+    
+    std::string test_file = "test_weights_dump.bin";
+    bool save_ok = trainer.save_weights(test_file);
+    assert(save_ok && "Failed to save weights!");
+    
+    TernaryTrainer loaded_trainer(100, 1.0f, true);
+    bool load_ok = loaded_trainer.load_weights(test_file);
+    assert(load_ok && "Failed to load weights!");
+    
+    assert(loaded_trainer.get_layers().size() == trainer.get_layers().size() && "Loaded layer size mismatch!");
+    assert(loaded_trainer.get_layers()[0].in_features == trainer.get_layers()[0].in_features && "Loaded layer in_features mismatch!");
+    assert(loaded_trainer.get_layers()[0].out_features == trainer.get_layers()[0].out_features && "Loaded layer out_features mismatch!");
+    
+    assert(loaded_trainer.get_layers()[0].accumulators[0] == 120 && "Loaded accumulator value mismatch!");
+    assert(loaded_trainer.get_layers()[0].accumulators[1] == -150 && "Loaded accumulator value mismatch!");
+    assert(loaded_trainer.get_layers()[0].accumulators[2] == 50 && "Loaded accumulator value mismatch!");
+    
+    assert(loaded_trainer.get_layers()[0].ternary_weights[0] == 1 && "Loaded ternary weight mismatch!");
+    assert(loaded_trainer.get_layers()[0].ternary_weights[1] == -1 && "Loaded ternary weight mismatch!");
+    assert(loaded_trainer.get_layers()[0].ternary_weights[2] == 0 && "Loaded ternary weight mismatch!");
+    
+    // Pulisci il file temporaneo
+    std::remove(test_file.c_str());
+    
+    std::cout << "\033[1;32m[PASS] Save and Load operations are fully robust and verify successfully!\033[0m\n\n";
+}
+
 int main() {
     std::cout << "=======================================================\n";
     std::cout << "     NEXAQUANT AUTOMATED TEST VERIFICATION SUITE\n";
@@ -158,6 +197,7 @@ int main() {
     test_lut_unpacker();
     test_vram_multiplexer_eviction();
     test_v3_training_engine();
+    test_v3_weight_save_load();
     
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff = end - start;

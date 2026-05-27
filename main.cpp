@@ -1,7 +1,3 @@
-/* 
- * NEXAQUANT ENGINE v3.0 - (C) 2026 Nexa1nc
- * Dual Mode: v1.1 Classic CPU Chat, v2.0 VRAM Multi-Model Multiplexer (M3), & v3.0 Ultra-Low RAM Trainer
- */
 #include <iostream>
 #include <chrono>
 #include <vector>
@@ -9,6 +5,8 @@
 #include <thread>
 #include <iomanip>
 #include <cmath>
+#include <fstream>
+#include <sstream>
 
 #include "gpu_ternary_kernel.hpp"
 #include "vram_multiplexer.hpp"
@@ -232,8 +230,190 @@ void run_v3_training() {
     std::cout << "--------------------------------------------------------------------------\n";
 }
 
+void run_custom_training(const std::string& dataset_path, size_t in_f, size_t hidden_f, size_t out_f, int epochs = 200, float lr = 1.0f, const std::string& output_path = "trained_model.bin") {
+    std::cout << "\033[1;32m[SYSTEM] NEXAQUANT v3.0 - Custom Dataset Training Mode\033[0m\n";
+    std::cout << "[SYSTEM] Dataset: " << dataset_path << "\n";
+    std::cout << "[SYSTEM] Model Topology: " << in_f << " -> " << hidden_f << " -> " << out_f << "\n\n";
+
+    std::ifstream file(dataset_path);
+    if (!file.is_open()) {
+        std::cerr << "[ERROR] Could not open dataset file: " << dataset_path << "\n";
+        std::cerr << "[TIP] Create a file where each line is formatted as: input1 input2 ... | target1 target2 ...\n";
+        return;
+    }
+
+    struct DataSample {
+        std::vector<float> input;
+        std::vector<float> target;
+    };
+    std::vector<DataSample> dataset;
+    std::string line;
+    
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#') continue; 
+        
+        std::stringstream ss(line);
+        std::vector<float> inputs;
+        std::vector<float> targets;
+        bool parsing_targets = false;
+        
+        std::string token;
+        while (ss >> token) {
+            if (token == "|") {
+                parsing_targets = true;
+                continue;
+            }
+            try {
+                float v = std::stof(token);
+                if (parsing_targets) {
+                    targets.push_back(v);
+                } else {
+                    inputs.push_back(v);
+                }
+            } catch (...) {
+                // Ignore parsing errors
+            }
+        }
+        
+        if (inputs.size() == in_f && targets.size() == out_f) {
+            dataset.push_back({inputs, targets});
+        }
+    }
+
+    file.close();
+
+    if (dataset.empty()) {
+        std::cerr << "[ERROR] No valid data samples parsed. Ensure dimensions match topology exactly!\n";
+        return;
+    }
+
+    std::cout << "[SYSTEM] Successfully loaded " << dataset.size() << " training samples.\n";
+
+    TernaryTrainer trainer(80, lr, true);
+    trainer.add_layer(in_f, hidden_f);
+    trainer.add_layer(hidden_f, out_f);
+
+    auto start_time = std::chrono::high_resolution_clock::now();
+    size_t ram_saved = 0;
+    
+    int print_interval = epochs / 10 == 0 ? 1 : epochs / 10;
+
+    for (int epoch = 0; epoch <= epochs; ++epoch) {
+        float epoch_loss = 0.0f;
+        for (const auto& sample : dataset) {
+            epoch_loss += trainer.train_step(sample.input, sample.target, ram_saved);
+        }
+        epoch_loss /= dataset.size();
+
+        if (epoch % print_interval == 0 || epoch == epochs) {
+            std::cout << "  [Epoch " << std::setw(4) << epoch << "] Avg Loss: " << std::fixed << std::setprecision(6) << epoch_loss 
+                      << " | RAM Saved: " << (ram_saved / 1024.0) << " KB\n";
+        }
+    }
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> duration = end_time - start_time;
+
+    std::cout << "\n--------------------------------------------------------------------------\n";
+    std::cout << "\033[1;32m[CUSTOM TRAINING COMPLETION SUCCESSFUL]\033[0m\n";
+    std::cout << "  - Trained Samples: " << dataset.size() << "\n";
+    std::cout << "  - Epochs:          " << epochs << "\n";
+    std::cout << "  - Total Time:      " << duration.count() << " ms\n";
+    std::cout << "  - Optimizer:       Sign-SGD with Stochastic 16-bit Integer Accumulators.\n";
+    
+    std::cout << "[SYSTEM] Saving trained model weights to: " << output_path << "\n";
+    if (trainer.save_weights(output_path)) {
+        std::cout << "\033[1;32m[SUCCESS] Model weights saved successfully!\033[0m\n";
+    } else {
+        std::cerr << "\033[1;31m[ERROR] Failed to save model weights to: " << output_path << "\033[0m\n";
+    }
+    std::cout << "--------------------------------------------------------------------------\n";
+}
+
+void run_predict_mode(const std::string& model_path, const std::vector<float>& input) {
+    TernaryTrainer trainer(80, 1.0f, true);
+    if (!trainer.load_weights(model_path)) {
+        std::cerr << "[ERROR] Could not load model from: " << model_path << "\n";
+        return;
+    }
+    
+    if (trainer.get_layers().empty()) {
+        std::cerr << "[ERROR] Loaded model is empty or invalid.\n";
+        return;
+    }
+    
+    size_t expected_in = trainer.get_layers().front().in_features;
+    if (input.size() != expected_in) {
+        std::cerr << "[ERROR] Input dimension mismatch. Expected " << expected_in << " values, but got " << input.size() << ".\n";
+        return;
+    }
+    
+    auto output = trainer.predict(input);
+    std::cout << "\n\033[1;32m--- NEXAQUANT INFERENCE RESULT ---\033[0m\n";
+    std::cout << "Model: " << model_path << "\n";
+    std::cout << "Input:  [";
+    for (size_t i = 0; i < input.size(); ++i) {
+        std::cout << input[i] << (i + 1 == input.size() ? "" : ", ");
+    }
+    std::cout << "]\n";
+    std::cout << "Output: [";
+    for (size_t i = 0; i < output.size(); ++i) {
+        std::cout << output[i] << (i + 1 == output.size() ? "" : ", ");
+    }
+    std::cout << "]\n";
+    std::cout << "-----------------------------------\n";
+}
+
 int main(int argc, char** argv) {
     print_header();
+
+    std::cout << "[DEBUG] Received argc: " << argc << "\n";
+    for (int i = 0; i < argc; ++i) {
+        std::cout << "  - argv[" << i << "]: " << argv[i] << "\n";
+    }
+
+    // Controlliamo se l'utente richiede la modalità training custom con dataset
+    if (argc > 1 && std::string(argv[1]) == "--train-dataset") {
+        if (argc < 6) {
+            std::cerr << "[USAGE] ./nexa_bench --train-dataset <dataset_path> <in_features> <hidden_features> <out_features> [epochs] [lr] [output_model_path]\n";
+            return 1;
+        }
+        try {
+            std::string dataset_path = argv[2];
+            size_t in_f = std::stoull(argv[3]);
+            size_t hidden_f = std::stoull(argv[4]);
+            size_t out_f = std::stoull(argv[5]);
+            int epochs = (argc > 6) ? std::stoi(argv[6]) : 200;
+            float lr = (argc > 7) ? std::stof(argv[7]) : 1.0f;
+            std::string output_path = (argc > 8) ? argv[8] : "trained_model.bin";
+
+            run_custom_training(dataset_path, in_f, hidden_f, out_f, epochs, lr, output_path);
+            return 0;
+        } catch (const std::exception& e) {
+            std::cerr << "[ERROR] Argument parsing failed: " << e.what() << "\n";
+            return 1;
+        }
+    }
+
+    // Controlliamo se l'utente richiede la modalità predict
+    if (argc > 1 && std::string(argv[1]) == "--predict") {
+        if (argc < 4) {
+            std::cerr << "[USAGE] ./nexa_bench --predict <model_path> <val1> <val2> ... <valN>\n";
+            return 1;
+        }
+        try {
+            std::string model_path = argv[2];
+            std::vector<float> input;
+            for (int i = 3; i < argc; ++i) {
+                input.push_back(std::stof(argv[i]));
+            }
+            run_predict_mode(model_path, input);
+            return 0;
+        } catch (const std::exception& e) {
+            std::cerr << "[ERROR] Prediction parsing failed: " << e.what() << "\n";
+            return 1;
+        }
+    }
 
     // Controlliamo se l'utente richiede la modalità training v3
     if (argc > 1 && std::string(argv[1]) == "--train") {

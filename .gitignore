@@ -11,3 +11,9 @@ nexa_test
 *.out
 *.exe
 .DS_Store
+
+# NexaQuant v3.0 Runtime Files
+*.bin
+input.txt
+text_dataset.txt
+test_weights_dump.bin

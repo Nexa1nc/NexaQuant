@@ -13,6 +13,7 @@
 #include <immintrin.h>
 #include <cstring>
 #include <random>
+#include <fstream>
 
 class TernaryTrainer {
 public:
@@ -78,6 +79,74 @@ public:
     }
 
     std::vector<Layer>& get_layers() { return layers; }
+    const std::vector<Layer>& get_layers() const { return layers; }
+
+    bool save_weights(const std::string& path) const {
+        std::ofstream file(path, std::ios::binary);
+        if (!file.is_open()) return false;
+        
+        uint32_t num_layers = layers.size();
+        file.write(reinterpret_cast<const char*>(&num_layers), sizeof(num_layers));
+        
+        for (const auto& layer : layers) {
+            uint32_t in_f = layer.in_features;
+            uint32_t out_f = layer.out_features;
+            file.write(reinterpret_cast<const char*>(&in_f), sizeof(in_f));
+            file.write(reinterpret_cast<const char*>(&out_f), sizeof(out_f));
+            
+            size_t size = layer.accumulators.size();
+            file.write(reinterpret_cast<const char*>(layer.accumulators.data()), size * sizeof(int16_t));
+            file.write(reinterpret_cast<const char*>(layer.ternary_weights.data()), size * sizeof(int8_t));
+        }
+        return true;
+    }
+
+    bool load_weights(const std::string& path) {
+        std::ifstream file(path, std::ios::binary);
+        if (!file.is_open()) return false;
+        
+        uint32_t num_layers = 0;
+        file.read(reinterpret_cast<char*>(&num_layers), sizeof(num_layers));
+        if (num_layers == 0) return false;
+        
+        layers.clear();
+        for (uint32_t l = 0; l < num_layers; ++l) {
+            uint32_t in_f = 0, out_f = 0;
+            file.read(reinterpret_cast<char*>(&in_f), sizeof(in_f));
+            file.read(reinterpret_cast<char*>(&out_f), sizeof(out_f));
+            
+            Layer layer(in_f, out_f);
+            size_t size = in_f * out_f;
+            file.read(reinterpret_cast<char*>(layer.accumulators.data()), size * sizeof(int16_t));
+            file.read(reinterpret_cast<char*>(layer.ternary_weights.data()), size * sizeof(int8_t));
+            layers.push_back(layer);
+        }
+        return true;
+    }
+
+    std::vector<float> predict(const std::vector<float>& input) const {
+        std::vector<float> current_activation = input;
+        for (const auto& layer : layers) {
+            size_t out_dim = layer.out_features;
+            std::vector<float> next_activation(out_dim, 0.0f);
+            
+            tiled_matmul_forward(current_activation.data(), 
+                                 layer.ternary_weights.data(), 
+                                 next_activation.data(), 
+                                 1, layer.in_features, out_dim);
+            
+            // ReLU (non per l'ultimo layer se preferito, ma qui per semplicità manteniamo ReLU su tutti i layer tranne l'ultimo)
+            // Anzi, per un classificatore/generatore, l'ultimo layer potrebbe non avere ReLU, ma per uniformità col forward di train_step lo facciamo su tutti.
+            // Aspetta, nel forward di train_step c'è:
+            // "for (size_t i = 0; i < out_dim; ++i) { if (next_activation[i] < 0.0f) next_activation[i] = 0.0f; }"
+            // Sì! Quindi ha ReLU su tutti i layer.
+            for (size_t i = 0; i < out_dim; ++i) {
+                if (next_activation[i] < 0.0f) next_activation[i] = 0.0f;
+            }
+            current_activation = next_activation;
+        }
+        return current_activation;
+    }
 
     // --- KERNEL AVX2 RIVOLUZIONARIO: TILED GEMM FORWARD ---
     // Moltiplica Input (float, M x K) per Pesi Ternari (int8_t, K x N) -> Output (float, M x N)
